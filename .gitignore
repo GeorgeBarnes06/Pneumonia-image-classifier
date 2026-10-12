@@ -1,4 +1,15 @@
+# Python environment
 .venv/
 __pycache__/
 *.pyc
 .ipynb_checkpoints/
+
+# Dataset: download from Kaggle (see README)
+data/
+
+# Training outputs
+models/
+logs/
+
+# macOS
+.DS_Store

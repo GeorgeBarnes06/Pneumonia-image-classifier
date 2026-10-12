@@ -10,7 +10,7 @@ The project has two iterations: a quick baseline CNN, then a deeper, redesigned 
 
 ## Dataset
 
-The [Chest X-Ray Images (Pneumonia)](https://www.kaggle.com/datasets/paultimothymooney/chest-xray-pneumonia) dataset from Kaggle (Kermany et al.), arranged as:
+The [Chest X-Ray Images (Pneumonia)](https://www.kaggle.com/datasets/paultimothymooney/chest-xray-pneumonia) dataset from Kaggle (Kermany et al.). It is not stored in this repo: download it and extract it into `data/` so it looks like this:
 
 ```
 data/
@@ -62,7 +62,16 @@ Changes made to tackle the overfitting and the class imbalance:
 - **Evaluation:** confusion matrix, per-class precision/recall/F1, ROC-AUC, ROC and precision-recall curves, plus a decision threshold tuned on the validation set to keep pneumonia recall ≥ 95%
 - Exploratory plots of the class distribution and sample images from each class
 
-**Result:** about **82% accuracy on the 624-image test set**, up from 77% in V1. The final model is saved to [`models/imageClassifier2.h5`](models/).
+**Test-set results** (624 images, test set used only for this final evaluation)
+
+| Metric | Threshold 0.5 | Tuned threshold (0.81) |
+|---|---:|---:|
+| Accuracy | 78.4% | **82.2%** |
+| Pneumonia recall | 99.0% | 98.2% |
+| Normal recall | 44.0% | 55.6% |
+| ROC-AUC | 0.934 | |
+
+The model almost never misses pneumonia but flags roughly half of healthy X-rays as pneumonia. On the held-out validation set it is nearly perfect, so the gap points to a shift between the training and test images rather than simple overfitting. Augmentation and transfer learning are the next steps to close it.
 
 ---
 
@@ -74,11 +83,14 @@ Python · TensorFlow / Keras · scikit-learn · OpenCV · NumPy · pandas · Mat
 ```bash
 git clone https://github.com/GeorgeBarnes06/Pneumonia-image-classifier.git
 cd Pneumonia-image-classifier
-pip install tensorflow opencv-python filetype numpy pandas matplotlib seaborn scikit-learn jupyter
-jupyter notebook classifierV2.ipynb
+python3 -m venv .venv
+source .venv/bin/activate          # Windows: .venv\Scripts\activate
+pip install -r requirements.txt
 ```
 
-If the `data/` folder is missing, download the dataset from Kaggle and extract it into `data/` using the structure above. A GPU is optional but speeds up training a lot.
+Then download the dataset into `data/` (see [Dataset](#dataset)) and open `classifierV2.ipynb` in Jupyter or VS Code with the `.venv` kernel. A GPU is optional but speeds up training a lot. On Apple Silicon, `tensorflow-metal` is installed automatically so training runs on the Mac's GPU.
+
+The dataset, trained models (`models/`) and TensorBoard logs (`logs/`) are generated locally and kept out of git.
 
 To view the training curves:
 ```bash
@@ -89,7 +101,8 @@ tensorboard --logdir logs
 
 ## Lessons learned and next steps
 - **Recall matters most here.** A missed pneumonia case is far worse than a false alarm, so recall and the confusion matrix are more meaningful than raw accuracy.
-- **The provided validation split is tiny (16 images).** The original V2 run monitored the test set during training, so its 82% was slightly optimistic. V2 now holds out its own patient-grouped validation set and only touches the test set for the final evaluation.
+- **The provided validation split is tiny (16 images).** The first V2 run monitored the test set during training, so its score was optimistic. V2 now holds out its own patient-grouped validation set and only touches the test set for the final evaluation.
+- **Validation and test sets can disagree.** V2 is near-perfect on validation but much weaker on test, a sign that the test images differ from the training images. A model has to be judged on data it has never seen in any form.
 - [ ] Data augmentation (small rotations, zoom, brightness)
 - [ ] Transfer learning from a pretrained backbone (e.g. EfficientNet or DenseNet121)
 - [x] Report a confusion matrix, ROC-AUC and per-class F1
