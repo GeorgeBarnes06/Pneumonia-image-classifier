@@ -57,7 +57,9 @@ Changes made to tackle the overfitting and the class imbalance:
 - **~370K parameters**, about 10× fewer than V1 despite being much deeper
 - **Class weighting** `{normal: 6.0, pneumonia: 0.5}` to stop the model defaulting to the majority class
 - **Optimiser:** Adam (lr = 1e-4) with categorical cross-entropy
-- **Early stopping** (patience 6) to stop training once loss plateaus
+- **Patient-grouped validation split:** the 16-image `val/` folder is merged back into training and ~14% is held out, stratified by class and grouped by patient so no patient's X-rays appear in both sets
+- **Early stopping** (patience 6) on validation loss, restoring the best weights
+- **Evaluation:** confusion matrix, per-class precision/recall/F1, ROC-AUC, ROC and precision-recall curves, plus a decision threshold tuned on the validation set to keep pneumonia recall ≥ 95%
 - Exploratory plots of the class distribution and sample images from each class
 
 **Result:** about **82% accuracy on the 624-image test set**, up from 77% in V1. The final model is saved to [`models/imageClassifier2.h5`](models/).
@@ -65,14 +67,14 @@ Changes made to tackle the overfitting and the class imbalance:
 ---
 
 ## Tech stack
-Python · TensorFlow / Keras · OpenCV · NumPy · pandas · Matplotlib · seaborn · TensorBoard · Jupyter
+Python · TensorFlow / Keras · scikit-learn · OpenCV · NumPy · pandas · Matplotlib · seaborn · TensorBoard · Jupyter
 
 ## Running it
 
 ```bash
 git clone https://github.com/GeorgeBarnes06/Pneumonia-image-classifier.git
 cd Pneumonia-image-classifier
-pip install tensorflow opencv-python filetype numpy pandas matplotlib seaborn jupyter
+pip install tensorflow opencv-python filetype numpy pandas matplotlib seaborn scikit-learn jupyter
 jupyter notebook classifierV2.ipynb
 ```
 
@@ -87,8 +89,8 @@ tensorboard --logdir logs
 
 ## Lessons learned and next steps
 - **Recall matters most here.** A missed pneumonia case is far worse than a false alarm, so recall and the confusion matrix are more meaningful than raw accuracy.
-- **The validation split is tiny (16 images).** V2 therefore monitored the test set during training, which makes its test score slightly optimistic. Next step: carve a proper validation set (~10–15%) out of the training data and keep the test set untouched until the end.
+- **The provided validation split is tiny (16 images).** The original V2 run monitored the test set during training, so its 82% was slightly optimistic. V2 now holds out its own patient-grouped validation set and only touches the test set for the final evaluation.
 - [ ] Data augmentation (small rotations, zoom, brightness)
 - [ ] Transfer learning from a pretrained backbone (e.g. EfficientNet or DenseNet121)
-- [ ] Report a confusion matrix, ROC-AUC and per-class F1
+- [x] Report a confusion matrix, ROC-AUC and per-class F1
 - [ ] Grad-CAM heatmaps to show which lung regions drive each prediction
